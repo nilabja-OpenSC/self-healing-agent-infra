@@ -1,0 +1,6 @@
+apiVersion: v2
+name: sre-observability
+description: All-in-one Helm chart for Prometheus, Grafana, Loki, Alertmanager, sample apps, and DB with OpenShift/Kubernetes option.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
