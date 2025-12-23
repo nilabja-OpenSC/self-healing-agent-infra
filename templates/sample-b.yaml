@@ -1,0 +1,43 @@
+{{- $ns := (index .Values.sampleApps.namespaces 1) }}
+{{- range $i, $ := until (int .Values.sampleApps.servicesPerNamespace) }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: svc-b{{ add $i 1 }}
+  namespace: {{ $ns }}
+spec:
+  replicas: {{ $.Values.sampleApps.replicasPerService }}
+  selector:
+    matchLabels:
+      app: svc-b{{ add $i 1 }}
+  template:
+    metadata:
+      labels:
+        app: svc-b{{ add $i 1 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ $.Values.sampleApps.port }}"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: app
+          image: {{ $.Values.sampleApps.image }}
+          imagePullPolicy: {{ $.Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ $.Values.sampleApps.port }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-b{{ add $i 1 }}
+  namespace: {{ $ns }}
+spec:
+  type: {{ $.Values.sampleApps.serviceType }}
+  selector:
+    app: svc-b{{ add $i 1 }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: {{ $.Values.sampleApps.port }}
+{{- end }}
