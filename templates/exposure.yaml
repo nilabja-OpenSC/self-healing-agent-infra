@@ -1,0 +1,81 @@
+{{- if and (eq .Values.global.platform "kubernetes") (eq .Values.global.expose.type "ingress") }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana
+  namespace: {{ .Values.monitoring.namespace }}
+spec:
+  {{- if .Values.global.expose.tlsEnabled }}
+  tls:
+    - hosts:
+        - grafana.{{ .Values.global.expose.domain }}
+      secretName: grafana-tls
+  {{- end }}
+  rules:
+    - host: grafana.{{ .Values.global.expose.domain }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: {{ .Values.grafana.service.port }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: alertmanager
+  namespace: {{ .Values.monitoring.namespace }}
+spec:
+  {{- if .Values.global.expose.tlsEnabled }}
+  tls:
+    - hosts:
+        - alertmanager.{{ .Values.global.expose.domain }}
+      secretName: alertmanager-tls
+  {{- end }}
+  rules:
+    - host: alertmanager.{{ .Values.global.expose.domain }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: alertmanager
+                port:
+                  number: 9093
+{{- end }}
+---
+{{- if and (eq .Values.global.platform "openshift") (eq .Values.global.expose.type "route") }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: grafana
+  namespace: {{ .Values.monitoring.namespace }}
+spec:
+  to:
+    kind: Service
+    name: grafana
+  host: grafana.{{ .Values.global.expose.domain }}
+  port:
+    targetPort: web
+  tls:
+    termination: {{ if .Values.global.expose.tlsEnabled }}edge{{ else }}passthrough{{ end }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: alertmanager
+  namespace: {{ .Values.monitoring.namespace }}
+spec:
+  to:
+    kind: Service
+    name: alertmanager
+  host: alertmanager.{{ .Values.global.expose.domain }}
+  port:
+    targetPort: web
+  tls:
+    termination: {{ if .Values.global.expose.tlsEnabled }}edge{{ else }}passthrough{{ end }}
+{{- end }}
