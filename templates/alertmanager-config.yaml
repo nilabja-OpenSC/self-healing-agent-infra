@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: {{ .Values.monitoring.namespace }}
+data:
+  alertmanager.yml: |
+    global: {}
+    route:
+{{ toYaml .Values.alertmanager.config.route | indent 6 }}
+    receivers:
+{{ toYaml .Values.alertmanager.config.receivers | indent 6 }}
