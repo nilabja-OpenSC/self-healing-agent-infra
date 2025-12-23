@@ -1,0 +1,109 @@
+global:
+  platform: kubernetes # options: kubernetes | openshift
+
+  expose:
+    # How to expose Grafana/Alertmanager: "ingress" for Kubernetes, "route" for OpenShift, "nodeport" for either
+    type: ingress
+    domain: example.com # used when type=ingress/route
+    tlsEnabled: false
+
+  imagePullPolicy: IfNotPresent
+
+monitoring:
+  namespace: monitoring
+
+storage:
+  # Set proper StorageClass names for your cluster if needed
+  storageClass: ""
+  size: 10Gi
+
+prometheus:
+  image: prom/prometheus:latest
+  replicas: 1
+  retention: 24h
+  resources: {}
+  scrape:
+    # Annotations to auto-scrape pods:
+    # prometheus.io/scrape=true
+    # prometheus.io/port=8080
+    # prometheus.io/path=/metrics
+    additionalScrapeConfigs: []
+  alertmanager:
+    serviceName: alertmanager
+    port: 9093
+
+alertmanager:
+  image: prom/alertmanager:latest
+  replicas: 1
+  config:
+    route:
+      receiver: "default"
+      group_by: ["alertname", "namespace", "pod"]
+      group_wait: 10s
+      group_interval: 5m
+      repeat_interval: 3h
+    receivers:
+      - name: "default"
+        # Examples:
+        # slack_configs:
+        #   - api_url: https://hooks.slack.com/services/XXX/YYY/ZZZ
+        #     channel: "#alerts"
+        # email_configs:
+        #   - to: "alerts@example.com"
+        #     from: "noreply@example.com"
+        #     smarthost: "smtp.example.com:587"
+        #     auth_username: "user"
+        #     auth_password: "pass"
+
+grafana:
+  image: grafana/grafana:latest
+  replicas: 1
+  adminUser: admin
+  adminPassword: admin123
+  resources: {}
+  service:
+    type: ClusterIP
+    port: 3000
+
+loki:
+  image: grafana/loki:2.9.0
+  replicas: 1
+  resources: {}
+  storage:
+    size: 10Gi
+  config:
+    # Single-binary filesystem storage
+    chunk_target_size: 1536000
+    table_manager_retention_deletes_enabled: true
+    table_manager_retention_period: 24h
+
+promtail:
+  enabled: true
+  image: grafana/promtail:2.9.0
+  resources: {}
+  extraScrapeConfigs: []
+  security:
+    # OpenShift typically requires privileged to mount host logs
+    privilegedOnOpenShift: true
+
+sampleApps:
+  namespaces:
+    - sample-a
+    - sample-b
+  replicasPerService: 1
+  servicesPerNamespace: 4
+  image: quay.io/brancz/prometheus-example-app:latest
+  port: 8080
+  serviceType: ClusterIP
+
+database:
+  namespace: databases
+  image: postgres:15
+  replicas: 1
+  storage:
+    size: 10Gi
+  resources: {}
+  env:
+    POSTGRES_DB: appdb
+    POSTGRES_USER: appuser
+    POSTGRES_PASSWORD: appsecret
