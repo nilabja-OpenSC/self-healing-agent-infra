@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: {{ .Values.monitoring.namespace }}
+spec:
+  replicas: {{ .Values.grafana.replicas }}
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 2000
+      containers:
+        - name: grafana
+          image: {{ .Values.grafana.image }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.grafana.service.port }}
+              name: web
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: {{ .Values.grafana.adminUser | quote }}
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: {{ .Values.grafana.adminPassword | quote }}
+          volumeMounts:
+            - name: grafana-config
+              mountPath: /etc/grafana
+            - name: grafana-datasources
+              mountPath: /etc/grafana/provisioning/datasources
+      volumes:
+        - name: grafana-config
+          configMap:
+            name: grafana-config
+        - name: grafana-datasources
+          configMap:
+            name: grafana-datasources
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: {{ .Values.monitoring.namespace }}
+spec:
+  type: {{ .Values.grafana.service.type }}
+  selector:
+    app: grafana
+  ports:
+    - name: web
+      port: {{ .Values.grafana.service.port }}
+      targetPort: {{ .Values.grafana.service.port }}
