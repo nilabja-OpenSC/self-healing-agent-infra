@@ -8,13 +8,9 @@ metadata:
 data:
   datasources.yaml: |
     apiVersion: 1
-    deleteDatasources:
-      - name: Prometheus
-        orgId: 1
-      - name: Loki
-        orgId: 1
     datasources:
       - name: Prometheus
+        uid: prom
         type: prometheus
         access: proxy
         url: http://prometheus.{{ .Values.monitoring.namespace }}.svc:9090
@@ -22,14 +18,11 @@ data:
         jsonData:
           timeInterval: "15s"
       - name: Loki
+        uid: loki
         type: loki
         access: proxy
         url: http://loki.{{ .Values.monitoring.namespace }}.svc:3100
-        jsonData:
-          derivedFields:
-            - datasourceUid: prom
-              matcherRegex: ""
-              name: ""
+        jsonData: {}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -39,10 +32,9 @@ metadata:
 data:
   grafana.ini: |
     [server]
-    # Set root_url for ingress/route if needed
-    # root_url = %(protocol)s://%(domain)s/
+    # root_url can be set if needed for ingress/route
     [security]
     admin_user = {{ .Values.grafana.adminUser }}
     admin_password = {{ .Values.grafana.adminPassword }}
     [dashboards]
-    default_home_dashboard_path = /var/lib/grafana/dashboards
+    default_home_dashboard_path = /var/lib/grafana/dashboards/sre-application-overview.json
