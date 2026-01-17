@@ -1,12 +1,26 @@
+
+{{- $ns := .Values.global.namespace }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: alertmanager-config
-  namespace: {{ .Values.monitoring.namespace }}
+  namespace: {{ $ns }}
+
 data:
   alertmanager.yml: |
     global: {}
+
     route:
-{{ toYaml .Values.alertmanager.config.route | indent 6 }}
+      receiver: {{ if .Values.alertmanager.slack.enabled }}"slack"{{ else }}"default"{{ end }}
+
     receivers:
-{{ toYaml .Values.alertmanager.config.receivers | indent 6 }}
+      - name: "default"
+{{- if .Values.alertmanager.slack.enabled }}
+      - name: "slack"
+        slack_configs:
+          - api_url: {{ .Values.alertmanager.slack.webhookUrl | quote }}
+            channel:  {{ .Values.alertmanager.slack.channel     | quote }}
+            username: {{ .Values.alertmanager.slack.username    | quote }}
+            icon_emoji: {{ .Values.alertmanager.slack.icon_emoji | quote }}
+            send_resolved: true
+{{- end }}

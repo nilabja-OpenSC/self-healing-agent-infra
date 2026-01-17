@@ -1,10 +1,9 @@
+{{- $ns := .Values.global.namespace }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-datasources
-  namespace: {{ .Values.monitoring.namespace }}
-  labels:
-    grafana_datasource: "1"
+  namespace: {{ $ns }}
 data:
   datasources.yaml: |
     apiVersion: 1
@@ -13,7 +12,7 @@ data:
         uid: prom
         type: prometheus
         access: proxy
-        url: http://prometheus.{{ .Values.monitoring.namespace }}.svc:9090
+        url: http://prometheus.{{ $ns }}.svc:9090
         isDefault: true
         jsonData:
           timeInterval: "15s"
@@ -21,18 +20,17 @@ data:
         uid: loki
         type: loki
         access: proxy
-        url: http://loki.{{ .Values.monitoring.namespace }}.svc:3100
+        url: http://loki.{{ $ns }}.svc:3100
         jsonData: {}
+
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-config
-  namespace: {{ .Values.monitoring.namespace }}
+  namespace: {{ $ns }}
 data:
   grafana.ini: |
-    [server]
-    # root_url can be set if needed for ingress/route
     [security]
     admin_user = {{ .Values.grafana.adminUser }}
     admin_password = {{ .Values.grafana.adminPassword }}

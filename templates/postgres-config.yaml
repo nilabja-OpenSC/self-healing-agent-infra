@@ -1,0 +1,11 @@
+{{- $ns := .Values.global.namespace }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: {{ $ns }}
+data:
+  postgres.conf: |
+    # Basic example tuning; extend as needed.
+    shared_buffers = 256MB
+    max_connections = 100

@@ -1,51 +1,42 @@
+{{- $ns := .Values.global.namespace }}
+{{- $rel := .Release.Name }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: alertmanager
-  namespace: {{ .Values.monitoring.namespace }}
+  namespace: {{ $ns }}
 spec:
-  replicas: {{ .Values.alertmanager.replicas }}
+  replicas: 1
   selector:
-    matchLabels:
-      app: alertmanager
+    matchLabels: { app: alertmanager }
   template:
     metadata:
-      labels:
-        app: alertmanager
+      labels: { app: alertmanager }
     spec:
-      securityContext:
-        runAsNonRoot: true
-        fsGroup: 2000
       containers:
         - name: alertmanager
           image: {{ .Values.alertmanager.image }}
-          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           args:
             - "--config.file=/etc/alertmanager/alertmanager.yml"
+            - "--storage.path=/data"
           ports:
-            - containerPort: 9093
-              name: web
+            - { name: web, containerPort: 9093 }
           volumeMounts:
-            - name: config
-              mountPath: /etc/alertmanager
+            - { name: config, mountPath: /etc/alertmanager }
+            - { name: data,   mountPath: /data }
       volumes:
         - name: config
-          configMap:
-            name: alertmanager-config
-            items:
-              - key: alertmanager.yml
-                path: alertmanager.yml
+          configMap: { name: alertmanager-config }
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ $rel }}-alertmanager-data
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: alertmanager
-  namespace: {{ .Values.monitoring.namespace }}
+  namespace: {{ $ns }}
 spec:
-  type: ClusterIP
-  selector:
-    app: alertmanager
+  selector: { app: alertmanager }
   ports:
-    - name: web
-      port: 9093
-      targetPort: 9093
+    - { name: web, port: 9093, targetPort: 9093 }
