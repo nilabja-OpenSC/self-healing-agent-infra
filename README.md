@@ -22,3 +22,5 @@ helm template observability ./self-healing-agent-infra --namespace `<your namesp
 ### Deploy the infra
 
 helm install observability ./self-healing-agent-infra --namespace `<your namespace name>` --set global.platform=openshift --set global.expose.type=route
+
+Note: There is an issue with Postgressql Db. Ignore it as of now.
