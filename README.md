@@ -4,7 +4,7 @@
 
 ### clone the repository with the branches
 
-git clone
+git clone https://github.com/nilabja-OpenSC/self-healing-agent-infra.git
 
 ### switch to branch deploy-test
 
