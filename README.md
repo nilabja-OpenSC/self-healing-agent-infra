@@ -12,8 +12,8 @@ git checkout deploy-test
 
 ### Check the code with helm command
 
-helm template observability ./self-healing-agent-infra --namespace nilabja-haldar-dev --set global.platform=openshift --set global.expose.type=route
+helm template observability ./self-healing-agent-infra --namespace <your namespace name> --set global.platform=openshift --set global.expose.type=route
 
 ### Deploy the infra
 
-helm install observability ./self-healing-agent-infra --namespace nilabja-haldar-dev --set global.platform=openshift --set global.expose.type=route
+helm install observability ./self-healing-agent-infra --namespace <your namespace name> --set global.platform=openshift --set global.expose.type=route
