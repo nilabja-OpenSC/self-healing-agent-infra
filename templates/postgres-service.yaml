@@ -1,0 +1,12 @@
+{{- $ns := .Values.global.namespace }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: {{ $ns }}
+spec:
+  selector: { app: postgres }
+  type: ClusterIP
+  ports:
+    - { name: pg,      port: {{ .Values.database.port }},         targetPort: pg }
+    - { name: metrics, port: {{ .Values.database.exporter.port }}, targetPort: metrics }

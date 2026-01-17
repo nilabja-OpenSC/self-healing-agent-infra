@@ -1,0 +1,13 @@
+{{- $ns := .Values.global.namespace }}
+{{- $rel := .Release.Name }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $rel }}-site-b-cache
+  namespace: {{ $ns }}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: {{ .Values.storage.className | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.siteB.cacheSize }}

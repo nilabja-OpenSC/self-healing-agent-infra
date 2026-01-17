@@ -1,0 +1,28 @@
+{{- $ns := .Values.global.namespace }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-main-config
+  namespace: {{ $ns }}
+data:
+  nginx.conf: |
+    # Do not use a root-only user directive under SCC-restricted pods
+    # user  nginx;  # (intentionally commented)
+    pid   /tmp/nginx.pid;        # <— writable for arbitrary UID
+
+    worker_processes auto;
+
+    events {
+      worker_connections  1024;
+    }
+
+    http {
+      include       /etc/nginx/mime.types;
+      default_type  application/octet-stream;
+
+      sendfile        on;
+      keepalive_timeout  65;
+
+      # Load all      # Load all server snippets (status.conf + default site)
+      include /etc/nginx/conf.d/*.conf;
+    }

@@ -1,8 +1,9 @@
+{{- $ns := .Values.global.namespace }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-dashboards-provisioning
-  namespace: {{ .Values.monitoring.namespace }}
+  namespace: {{ $ns }}
 data:
   dashboards.yaml: |
     apiVersion: 1
@@ -22,135 +23,44 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-dashboards
-  namespace: {{ .Values.monitoring.namespace }}
+  namespace: {{ $ns }}
 data:
   sre-application-overview.json: |
     {
       "uid": "sre-app-overview",
       "title": "SRE – Application Overview",
       "time": { "from": "now-6h", "to": "now" },
-      "timezone": "browser",
       "schemaVersion": 38,
       "version": 1,
-      "editable": true,
       "refresh": "30s",
-      "tags": ["sre", "app", "prometheus", "loki"],
+      "tags": ["sre","app","prometheus","loki"],
       "templating": {
         "list": [
-          {
-            "type": "datasource",
-            "name": "PROM",
-            "query": "prometheus",
-            "current": { "text": "Prometheus", "value": "Prometheus" },
-            "hide": 0
-          },
-          {
-            "type": "datasource",
-            "name": "LOKI",
-            "query": "loki",
-            "current": { "text": "Loki", "value": "Loki" },
-            "hide": 0
-          },
-          {
-            "name": "namespace",
-            "type": "query",
-            "datasource": "Prometheus",
-            "refresh": 1,
-            "query": "label_values(up, namespace)",
-            "includeAll": true,
-            "multi": true
-          },
-          {
-            "name": "app",
-            "type": "query",
-            "datasource": "Prometheus",
-            "refresh": 1,
-            "query": "label_values(up{namespace=~\"$namespace\"}, app)",
-            "includeAll": true,
-            "multi": true
-          },
-          {
-            "name": "pod",
-            "type": "query",
-            "datasource": "Prometheus",
-            "refresh": 1,
-            "query": "label_values(up{namespace=~\"$namespace\", app=~\"$app\"}, pod)",
-            "includeAll": true,
-            "multi": true
-          }
+          { "type": "datasource", "name": "PROM", "query": "prometheus", "current": { "text": "Prometheus", "value": "Prometheus" } },
+          { "type": "datasource", "name": "LOKI", "query": "loki", "current": { "text": "Loki", "value": "Loki" } }
         ]
       },
       "panels": [
         {
           "type": "stat",
-          "title": "Request rate (req/s)",
+          "title": "Prometheus up (self)",
           "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
           "datasource": "Prometheus",
-          "targets": [
-            {
-              "expr": "sum by (namespace, app) (rate(http_requests_total{namespace=~\"$namespace\", app=~\"$app\", pod=~\"$pod\"}[5m]))",
-              "legendFormat": "{{namespace}}/{{app}}"
-            }
-          ]
+          "targets": [ { "expr": "sum(up{job=\"prometheus\"})" } ]
         },
         {
           "type": "stat",
-          "title": "Error rate (%)",
+          "title": "Alertmanager up",
           "gridPos": { "h": 6, "w": 8, "x": 8, "y": 0 },
           "datasource": "Prometheus",
-          "targets": [
-            {
-              "expr": "100 * ( sum(rate(http_requests_total{namespace=~\"$namespace\", app=~\"$app\", pod=~\"$pod\", status=~\"5..\"}[5m])) / sum(rate(http_requests_total{namespace=~\"$namespace\", app=~\"$app\", pod=~\"$pod\"}[5m])) )",
-              "legendFormat": "error %"
-            }
-          ]
-        },
-        {
-          "type": "stat",
-          "title": "Latency p95 (ms)",
-          "gridPos": { "h": 6, "w": 8, "x": 16, "y": 0 },
-          "datasource": "Prometheus",
-          "targets": [
-            {
-              "expr": "1000 * histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace=~\"$namespace\", app=~\"$app\", pod=~\"$pod\"}[5m])) by (le))"
-            }
-          ]
-        },
-        {
-          "type": "timeSeries",
-          "title": "Latency p99 (ms)",
-          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
-          "datasource": "Prometheus",
-          "fieldConfig": { "defaults": { "unit": "ms" } },
-          "targets": [
-            {
-              "expr": "1000 * histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{namespace=~\"$namespace\", app=~\"$app\", pod=~\"$pod\"}[5m])) by (le))",
-              "legendFormat": "p99"
-            }
-          ]
-        },
-        {
-          "type": "timeSeries",
-          "title": "Requests by status code",
-          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
-          "datasource": "Prometheus",
-          "targets": [
-            {
-              "expr": "sum by (status) (rate(http_requests_total{namespace=~\"$namespace\", app=~\"$app\", pod=~\"$pod\"}[5m]))",
-              "legendFormat": "{{status}}"
-            }
-          ]
+          "targets": [ { "expr": "sum(up{job=\"alertmanager\"})" } ]
         },
         {
           "type": "logs",
-          "title": "Error logs (Loki)",
-          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 14 },
+          "title": "Loki logs (demo)",
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 6 },
           "datasource": "Loki",
-          "targets": [
-            {
-              "expr": "{namespace=~\"$namespace\", app=~\"$app\", pod=~\"$pod\"} |= \"error\""
-            }
-          ]
+          "targets": [ { "expr": "{cluster=\"local\"}" } ]
         }
       ]
     }
@@ -163,54 +73,14 @@ data:
       "schemaVersion": 38,
       "version": 1,
       "refresh": "30s",
-      "tags": ["sre", "prometheus"],
-      "templating": {
-        "list": [
-          { "type": "datasource", "name": "PROM", "query": "prometheus", "current": { "text": "Prometheus", "value": "Prometheus" } },
-          { "name": "namespace", "type": "query", "datasource": "Prometheus", "query": "label_values(up, namespace)", "includeAll": true, "multi": true },
-          { "name": "app", "type": "query", "datasource": "Prometheus", "query": "label_values(up{namespace=~\"$namespace\"}, app)", "includeAll": true, "multi": true },
-          { "name": "pod", "type": "query", "datasource": "Prometheus", "query": "label_values(up{namespace=~\"$namespace\", app=~\"$app\"}, pod)", "includeAll": true, "multi": true }
-        ]
-      },
+      "tags": ["sre","prometheus"],
       "panels": [
         {
           "type": "table",
-          "title": "Target status by pod",
-          "gridPos": { "h": 10, "w": 12, "x": 0, "y": 0 },
+          "title": "Targets (up metric)",
+          "gridPos": { "h": 12, "w": 24, "x": 0, "y": 0 },
           "datasource": "Prometheus",
-          "transformations": [
-            { "id": "labelsToFields" }
-          ],
-          "targets": [
-            { "expr": "up{namespace=~\"$namespace\", app=~\"$app\", pod=~\"$pod\"}" }
-          ]
-        },
-        {
-          "type": "timeSeries",
-          "title": "Scrape duration seconds",
-          "gridPos": { "h": 10, "w": 12, "x": 12, "y": 0 },
-          "datasource": "Prometheus",
-          "targets": [
-            { "expr": "sum by (job) (scrape_duration_seconds{job=\"kubernetes-pods-annotated\"})" }
-          ]
-        },
-        {
-          "type": "timeSeries",
-          "title": "Scrape samples (per scrape)",
-          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
-          "datasource": "Prometheus",
-          "targets": [
-            { "expr": "sum by (job) (scrape_samples_post_metric_relabeling{job=\"kubernetes-pods-annotated\"})" }
-          ]
-        },
-        {
-          "type": "timeSeries",
-          "title": "Scrape failures",
-          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
-          "datasource": "Prometheus",
-          "targets": [
-            { "expr": "sum by (job) (rate(scrape_series_added{job=\"kubernetes-pods-annotated\"}[5m]))" }
-          ]
+          "targets": [ { "expr": "up" } ]
         }
       ]
     }
@@ -223,71 +93,99 @@ data:
       "schemaVersion": 38,
       "version": 1,
       "refresh": "10s",
-      "tags": ["sre", "loki", "logs"],
-      "templating": {
-        "list": [
-          { "type": "datasource", "name": "LOKI", "query": "loki", "current": { "text": "Loki", "value": "Loki" } },
-          { "name": "namespace", "type": "query", "datasource": "Loki", "query": "label_values({job=\"kubernetes-pods\"}, namespace)", "includeAll": true, "multi": true },
-          { "name": "app", "type": "query", "datasource": "Loki", "query": "label_values({namespace=~\"$namespace\"}, app)", "includeAll": true, "multi": true },
-          { "name": "pod", "type": "query", "datasource": "Loki", "query": "label_values({namespace=~\"$namespace\", app=~\"$app\"}, pod)", "includeAll": true, "multi": true },
-          { "name": "container", "type": "query", "datasource": "Loki", "query": "label_values({namespace=~\"$namespace\", app=~\"$app\", pod=~\"$pod\"}, container)", "includeAll": true, "multi": true }
-        ]
-      },
+      "tags": ["sre","loki","logs"],
       "panels": [
         {
           "type": "logs",
           "title": "Live logs",
-          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 0 },
+          "gridPos": { "h": 12, "w": 24, "x": 0, "y": 0 },
           "datasource": "Loki",
-          "targets": [
-            { "expr": "{namespace=~\"$namespace\", app=~\"$app\", pod=~\"$pod\", container=~\"$container\"}" }
-          ]
+          "targets": [ { "expr": "{}" } ]
+        }
+      ]
+    }
+
+  sre-postgres-overview.json: |
+    {
+      "uid": "sre-postgres",
+      "title": "SRE – Postgres Overview",
+      "time": { "from": "now-6h", "to": "now" },
+      "schemaVersion": 38,
+      "version": 1,
+      "refresh": "30s",
+      "tags": ["sre","postgres","prometheus"],
+      "panels": [
+        {
+          "type": "stat",
+          "title": "pg_up",
+          "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
+          "datasource": "Prometheus",
+          "targets": [ { "expr": "sum(pg_up)" } ]
         },
         {
           "type": "timeSeries",
-          "title": "Log rate (lines/s)",
-          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
-          "datasource": "Loki",
-          "targets": [
-            {
-              "expr": "sum by (pod) (rate(({namespace=~\"$namespace\", app=~\"$app\", pod=~\"$pod\"})[5m]))",
-              "legendFormat": "{{pod}}"
-            }
-          ]
+          "title": "Active connections",
+          "gridPos": { "h": 6, "w": 16, "x": 8, "y": 0 },
+          "datasource": "Prometheus",
+          "targets": [ { "expr": "sum(pg_stat_activity_count{state=\"active\"})" } ]
         },
         {
           "type": "timeSeries",
-          "title": "Error log rate",
-          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
-          "datasource": "Loki",
+          "title": "Commits & rollbacks",
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 6 },
+          "datasource": "Prometheus",
           "targets": [
-            {
-              "expr": "sum by (pod) (rate(({namespace=~\"$namespace\", app=~\"$app\", pod=~\"$pod\"} |= \"error\")[5m]))",
-              "legendFormat": "{{pod}}"
-            }
-          ]
-        },
-        {
-          "type": "table",
-          "title": "Top noisy pods (lines in 15m)",
-          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
-          "datasource": "Loki",
-          "targets": [
-            {
-              "expr": "topk(10, sum by (pod) (count_over_time(({namespace=~\"$namespace\", app=~\"$app\"})[15m])))"
-            }
-          ]
-        },
-        {
-          "type": "table",
-          "title": "Top noisy containers (lines in 15m)",
-          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
-          "datasource": "Loki",
-          "targets": [
-            {
-              "expr": "topk(10, sum by (pod, container) (count_over_time(({namespace=~\"$namespace\", app=~\"$app\"})[15m])))"
-            }
+            { "expr": "sum(rate(pg_stat_database_xact_commit[5m]))", "legendFormat": "commit" },
+            { "expr": "sum(rate(pg_stat_database_xact_rollback[5m]))", "legendFormat": "rollback" }
           ]
         }
       ]
     }
+
+---
+
+{{- $ns := .Values.global.namespace }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: {{ $ns }}
+data:
+  sre-nginx-overview.json: |
+    {
+      "uid": "sre-nginx",
+      "title": "SRE – NGINX Overview",
+      "time": { "from": "now-6h", "to": "now" },
+      "schemaVersion": 38,
+      "version": 1,
+      "refresh": "30s",
+      "tags": ["sre","nginx","prometheus"],
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Active connections",
+          "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
+          "datasource": "Prometheus",
+          "targets": [ { "expr": "sum(nginx_connections_active)" } ]
+        },
+        {
+          "type": "timeSeries",
+          "title": "Requests rate (req/s)",
+          "gridPos": { "h": 6, "w": 16, "x": 8, "y": 0 },
+          "datasource": "Prometheus",
+          "targets": [ { "expr": "sum(rate(nginx_http_requests_total[5m]))" } ]
+        },
+        {
+          "type": "timeSeries",
+          "title": "Connections state",
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 6 },
+          "datasource": "Prometheus",
+          "targets": [
+            { "expr": "sum(nginx_connections_reading)", "legendFormat": "reading" },
+            { "expr": "sum(nginx_connections_writing)", "legendFormat": "writing" },
+            { "expr": "sum(nginx_connections_waiting)", "legendFormat": "waiting" }
+          ]
+        }
+      ]
+    }
+

@@ -1,109 +1,83 @@
 global:
-  platform: kubernetes # options: kubernetes | openshift
-
+  namespace: nilabja-haldar-dev
+  platform: kubernetes
   expose:
-    # How to expose Grafana/Alertmanager: "ingress" for Kubernetes, "route" for OpenShift, "nodeport" for either
     type: ingress
-    domain: example.com # used when type=ingress/route
+    domain: example.com
     tlsEnabled: false
 
-  imagePullPolicy: IfNotPresent
-
-monitoring:
-  namespace: monitoring
-
-storage:
-  # Set proper StorageClass names for your cluster if needed
-  storageClass: ""
-  size: 10Gi
-
 prometheus:
-  image: prom/prometheus:latest
-  replicas: 1
+  image: prom/prometheus:v2.49.1
   retention: 24h
-  resources: {}
-  scrape:
-    # Annotations to auto-scrape pods:
-    # prometheus.io/scrape=true
-    # prometheus.io/port=8080
-    # prometheus.io/path=/metrics
-    additionalScrapeConfigs: []
-  alertmanager:
-    serviceName: alertmanager
-    port: 9093
 
 alertmanager:
-  image: prom/alertmanager:latest
-  replicas: 1
-  config:
-    route:
-      receiver: "default"
-      group_by: ["alertname", "namespace", "pod"]
-      group_wait: 10s
-      group_interval: 5m
-      repeat_interval: 3h
-    receivers:
-      - name: "default"
-        # Examples:
-        # slack_configs:
-        #   - api_url: https://hooks.slack.com/services/XXX/YYY/ZZZ
-        #     channel: "#alerts"
-        # email_configs:
-        #   - to: "alerts@example.com"
-        #     from: "noreply@example.com"
-        #     smarthost: "smtp.example.com:587"
-        #     auth_username: "user"
-        #     auth_password: "pass"
-
-grafana:
-  image: grafana/grafana:latest
-  replicas: 1
-  adminUser: admin
-  adminPassword: admin123
-  resources: {}
-  service:
-    type: ClusterIP
-    port: 3000
+  image: prom/alertmanager:v0.26.0
+  slack:
+    enabled: false
+    # Replace with your real Slack incoming webhook URL:
+    webhookUrl: "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
+    channel: "#alerts"
+    username: "alertmanager"
+    icon_emoji: ":rotating_light:"
 
 loki:
-  image: grafana/loki:2.9.0
-  replicas: 1
-  resources: {}
-  storage:
-    size: 10Gi
-  config:
-    # Single-binary filesystem storage
-    chunk_target_size: 1536000
-    table_manager_retention_deletes_enabled: true
-    table_manager_retention_period: 24h
+  image: grafana/loki:2.9.4
 
-promtail:
-  enabled: true
-  image: grafana/promtail:2.9.0
-  resources: {}
-  extraScrapeConfigs: []
-  security:
-    # OpenShift typically requires privileged to mount host logs
-    privilegedOnOpenShift: true
+grafana:
+  image: grafana/grafana:10.3.1
+  adminUser: admin
+  adminPassword: admin
 
-sampleApps:
-  namespaces:
-    - sample-a
-    - sample-b
-  replicasPerService: 1
-  servicesPerNamespace: 4
-  image: quay.io/brancz/prometheus-example-app:latest
-  port: 8080
-  serviceType: ClusterIP
+sampleSites:
+  siteA:
+    host: site-a.example.com
+    title: "Sample A"
+    message: "Welcome to Sample A static website!"
+  siteB:
+    host: site-b.example.com
+    title: "Sample B"
+    message: "Welcome to Sample B static website!"
+
+nginxExporter:
+  image: nginx/nginx-prometheus-exporter:1.5.1
+  # Defaults per upstream: listens on :9113, scrapes /stub_status on 8080
+  scrapeUri: "http://127.0.0.1:8080/stub_status"
+  port: 9113
+
 
 database:
-  namespace: databases
-  image: postgres:15
-  replicas: 1
-  storage:
-    size: 10Gi
-  resources: {}
+  enabled: true
+  image: bitnami/postgresql:latest    # official Postgres image
+  port: 5432
   env:
     POSTGRES_DB: appdb
     POSTGRES_USER: appuser
     POSTGRES_PASSWORD: appsecret
+  storage:
+    enabled: true              # set false to use emptyDir (no PVC)
+    size: 10Gi
+    storageClassName: ""       # optional: set to your SC, e.g., "standard"
+
+  exporter:
+    enabled: true
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.12.0
+    port: 9187
+    # The exporter sidecar reads credentials from the same Secret.
+    # It connects to Postgres via localhost inside the pod (5432).
+    datasource:
+      uri: "127.0.0.1:5432/appdb?sslmode=disable"
+      userRef: "postgres-user"       # keys inside the Secret (see template)
+      passRef: "postgres-password"
+
+storage:
+  className: efs-sc           # <-- use your default SC (ebs.csi.aws.com)
+  alertmanager:
+    size: 2Gi
+  loki:
+    size: 10Gi
+  siteA:
+    cacheSize: 1Gi
+  siteB:
+    cacheSize: 1Gi
+  database:
+    size: 10Gi
