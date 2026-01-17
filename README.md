@@ -13,7 +13,7 @@ git checkout deploy-test
 ### Change the namespace name in values.yaml file
 
 global:<br>
-  namespace: `<your namespace name>`
+&nbsp;&nbsp;namespace: `<your namespace name>`
 
 ### Check the code with helm command
 
