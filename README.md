@@ -10,6 +10,11 @@ git clone https://github.com/nilabja-OpenSC/self-healing-agent-infra.git
 
 git checkout deploy-test
 
+### Change the namespace name in values.yaml file
+
+global:
+  namespace: <your namespace name>
+
 ### Check the code with helm command
 
 helm template observability ./self-healing-agent-infra --namespace <your namespace name> --set global.platform=openshift --set global.expose.type=route
