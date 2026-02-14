@@ -1,0 +1,7 @@
+global:
+  namespace: nilabja-haldar-dev
+  platform: kubernetes
+  expose:
+    type: ingress
+    domain: example.com
+    tlsEnabled: false
