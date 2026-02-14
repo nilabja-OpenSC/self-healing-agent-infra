@@ -17,9 +17,12 @@ spec:
         - name: postgres
           image: {{ .Values.database.image }}
           env:
-            - { name: POSTGRES_DB,       value: {{ .Values.database.env.POSTGRES_DB | quote }} }
-            - { name: POSTGRES_USER,     value: {{ .Values.database.env.POSTGRES_USER | quote }} }
-            - { name: POSTGRES_PASSWORD, value: {{ .Values.database.env.POSTGRES_PASSWORD | quote }} }
+            - { name: POSTGRESQL_DATABASE,       value: {{ .Values.database.env.POSTGRESQL_DATABASE | quote }} }
+            - { name: POSTGRESQL_USERNAME,     value: {{ .Values.database.env.POSTGRESQL_USERNAME | quote }} }
+            - { name: POSTGRESQL_PASSWORD, value: {{ .Values.database.env.POSTGRESQL_PASSWORD | quote }} }
+          ports:
+            - name: pg
+              containerPort: 5432  
           volumeMounts:
             - { name: postgres-data,   mountPath: /bitnami/postgresql }
         - name: postgres-exporter
@@ -30,8 +33,8 @@ spec:
             - name: DATA_SOURCE_URI
               value: "127.0.0.1:5432/{{ .Values.database.env.POSTGRES_DB }}?sslmode=disable"
             - name: DATA_SOURCE_USER
-              value: {{ .Values.database.env.POSTGRES_USER | quote }}
+              value: {{ .Values.database.env.POSTGRESQL_USERNAME | quote }}
             - name: DATA_SOURCE_PASS
-              value: {{ .Values.database.env.POSTGRES_PASSWORD | quote }}
+              value: {{ .Values.database.env.POSTGRESQL_PASSWORD | quote }}
       volumes:
         - { name: postgres-data,   persistentVolumeClaim: { claimName: {{ $rel }}-postgres-data } }

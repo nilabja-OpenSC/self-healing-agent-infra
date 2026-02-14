@@ -61,6 +61,36 @@ data:
 
 ---
 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+  namespace: {{ $ns }}
+data:
+  promtail.yaml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+
+    positions:
+      filename: /tmp/positions.yaml
+
+    clients:
+      - url: http://loki.{{ $ns }}.svc:3100/loki/api/v1/push
+
+    scrape_configs:
+      - job_name: app-logs
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: site-b
+              namespace: {{ $ns }}
+              pod: ${POD_NAME}
+              __path__: /var/log/app-logs/*.log
+
+---
+
 {{- $ns := .Values.global.namespace }}
 {{- $rel := .Release.Name }}
 apiVersion: apps/v1
@@ -74,8 +104,40 @@ spec:
   template:
     metadata:
       labels: { app: site-b }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+        prometheus.io/path: "/actuator/prometheus"        
     spec:
       containers:
+        - name: promtail
+          image: grafana/promtail:3.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9100           
+          args:
+            - -config.file=/etc/promtail/config/promtail.yaml
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - name: promtail-config
+              mountPath: /etc/promtail/config
+            - name: applogs
+              mountPath: /var/log/app-logs
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi      
         - name: nginx-exporter
           image: nginx/nginx-prometheus-exporter:1.5.1
           args:
@@ -114,6 +176,11 @@ spec:
           emptyDir: {}
         - name: cache
           emptyDir: {}
+        - name: applogs
+          emptyDir: {}
+        - name: promtail-config
+          configMap:
+            name: promtail-config          
 
 
 ---
@@ -127,3 +194,4 @@ spec:
   ports:
     - { name: http,    port: 80,   targetPort: 8080 }
     - { name: metrics, port: 9113, targetPort: 9113 }
+    - { name: promtail, port: 9100, targetPort: 9100 }    

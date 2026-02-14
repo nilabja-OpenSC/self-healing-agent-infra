@@ -50,9 +50,9 @@ database:
   image: bitnami/postgresql:latest    # official Postgres image
   port: 5432
   env:
-    POSTGRES_DB: appdb
-    POSTGRES_USER: appuser
-    POSTGRES_PASSWORD: appsecret
+    POSTGRESQL_DATABASE: appdb
+    POSTGRESQL_USERNAME: appuser
+    POSTGRESQL_PASSWORD: appsecret
   storage:
     enabled: true              # set false to use emptyDir (no PVC)
     size: 10Gi
